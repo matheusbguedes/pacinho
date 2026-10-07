@@ -1,0 +1,37 @@
+{
+  "name": "pacinho-server",
+  "version": "1.0.0",
+  "main": "src/server.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "npx prisma generate && tsup src",
+    "start": "node dist/server.js",
+    "prisma:seed": "tsx prisma/seed.ts"
+  },
+  "private": true,
+  "license": "ISC",
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/node": "^24.10.1",
+    "@types/pg": "^8.15.6",
+    "dotenv": "^17.2.3",
+    "dotenv-cli": "^11.0.0",
+    "eslint": "^9.39.1",
+    "prisma": "^7.0.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.1.0",
+    "@fastify/jwt": "^10.0.0",
+    "@prisma/adapter-pg": "^7.0.1",
+    "@prisma/client": "^7.0.1",
+    "bcrypt": "^6.0.0",
+    "fastify": "^5.6.2",
+    "pg": "^8.16.3",
+    "tsconfig-paths": "^4.2.0",
+    "tsup": "^8.5.1",
+    "zod": "^4.1.13"
+  }
+}

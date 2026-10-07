@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum Gender {
+  WOMAN
+  MAN
+  NON_BINARY
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum Objective {
+  DATING
+  FRIENDSHIP
+  TRAINING
+}
+
+enum MatchAction {
+  LIKE
+  PASS
+}
+
+model User {
+  id          String     @id @default(uuid())
+  name        String
+  email       String     @unique
+  phone       String?
+  password    String
+  role        UserRole   @default(USER)
+  age         Int?
+  gender      Gender?
+  city        String?
+  region      String?
+  bio         String?
+  objective   Objective?
+  pace        String?
+  distance_km Float?
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
+
+  media             UserMedia[]
+  event_attendances EventAttendance[]
+  actions_sent      MatchActionRecord[] @relation("ActionsSent")
+  actions_received  MatchActionRecord[] @relation("ActionsReceived")
+
+  @@map("users")
+}
+
+model UserMedia {
+  id         String   @id @default(uuid())
+  url        String
+  sort_order Int      @default(0)
+  created_at DateTime @default(now())
+
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, sort_order])
+  @@map("user_media")
+}
+
+model Event {
+  id          String   @id @default(uuid())
+  name        String
+  starts_at   DateTime
+  location    String
+  distance_km Float?
+  organizer   String?
+  ticket_url  String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  attendances EventAttendance[]
+
+  @@map("events")
+}
+
+model EventAttendance {
+  id         String   @id @default(uuid())
+  created_at DateTime @default(now())
+
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  event_id String
+  event    Event  @relation(fields: [event_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, event_id])
+  @@map("event_attendances")
+}
+
+model MatchActionRecord {
+  id         String      @id @default(uuid())
+  action     MatchAction
+  created_at DateTime    @default(now())
+
+  from_id String
+  from    User   @relation("ActionsSent", fields: [from_id], references: [id], onDelete: Cascade)
+
+  to_id String
+  to    User   @relation("ActionsReceived", fields: [to_id], references: [id], onDelete: Cascade)
+
+  event_id String?
+
+  @@unique([from_id, to_id])
+  @@map("match_actions")
+}
