@@ -7,7 +7,7 @@ import {
 } from "@/modules/match/services";
 import type { MatchPerson } from "@/modules/match/types";
 
-export function useMatchScreen() {
+export function useMatchScreen(eventId?: string) {
   const [people, setPeople] = useState<MatchPerson[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isActing, setIsActing] = useState(false);
@@ -18,8 +18,11 @@ export function useMatchScreen() {
     let cancelled = false;
 
     async function loadPeople() {
+      setIsLoading(true);
+      setPeople([]);
+
       try {
-        const data = await listPeopleService();
+        const data = await listPeopleService(eventId);
         if (!cancelled) {
           setPeople(data);
         }
@@ -42,7 +45,7 @@ export function useMatchScreen() {
     return () => {
       cancelled = true;
     };
-  }, [reloadToken]);
+  }, [eventId, reloadToken]);
 
   async function handleSwipe(person: MatchPerson, action: "LIKE" | "PASS") {
     if (isActing) {
@@ -56,6 +59,7 @@ export function useMatchScreen() {
       const result = await sendMatchActionService({
         toId: person.id,
         action,
+        eventId,
       });
 
       if (result.is_match && result.matched_user) {

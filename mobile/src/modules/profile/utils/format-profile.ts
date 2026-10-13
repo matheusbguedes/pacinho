@@ -28,6 +28,16 @@ export function formatJoinedAt(createdAt: string) {
   return `Desde ${capitalized} ${year}`;
 }
 
+export function formatPace(pace: string) {
+  const trimmed = pace.trim();
+
+  if (trimmed.endsWith("/km")) {
+    return trimmed;
+  }
+
+  return `${trimmed}/km`;
+}
+
 export function formatLocation(city: string | null, region: string | null) {
   if (city && region) {
     return `${city}, ${region}`;
@@ -43,7 +53,7 @@ export function buildProfileSubtitle(input: {
 }) {
   const parts = [
     formatObjective(input.objective),
-    input.pace ? `${input.pace}/km` : null,
+    input.pace ? formatPace(input.pace) : null,
     formatJoinedAt(input.createdAt),
   ].filter(Boolean);
 

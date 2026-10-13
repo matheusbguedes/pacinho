@@ -1,3 +1,4 @@
+import { router, useLocalSearchParams } from "expo-router";
 import { useRef } from "react";
 import {
   ActivityIndicator,
@@ -8,7 +9,9 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
+import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { ROUTES } from "@/constants/routes";
 import {
   BorderWidth,
   Elevation,
@@ -17,7 +20,9 @@ import {
   Spacing,
 } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { useAuth } from "@/modules/auth";
 import { MatchCelebration } from "@/modules/match/components/match-celebration";
+import { ObjectiveStep } from "@/modules/match/components/objective-step";
 import {
   SwipeDeck,
   type SwipeDeckHandle,
@@ -26,10 +31,23 @@ import { useMatchScreen } from "@/modules/match/screens/match/use-match-screen";
 
 const TAB_BAR_CLEARANCE = 88;
 
+function firstParam(value: string | string[] | undefined) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw ? raw : undefined;
+}
+
 export function MatchScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const params = useLocalSearchParams<{
+    eventId?: string | string[];
+    eventName?: string | string[];
+  }>();
+  const eventId = firstParam(params.eventId);
+  const eventName = firstParam(params.eventName);
   const deckRef = useRef<SwipeDeckHandle>(null);
+  const needsObjective = Boolean(user && !user.objective);
   const {
     people,
     isLoading,
@@ -38,7 +56,20 @@ export function MatchScreen() {
     handleSwipe,
     dismissMatch,
     refresh,
-  } = useMatchScreen();
+  } = useMatchScreen(needsObjective ? undefined : eventId);
+
+  function clearEventFilter() {
+    router.setParams({ eventId: "", eventName: "" });
+  }
+
+  function openEvents() {
+    router.navigate(ROUTES.tabs.events);
+  }
+
+  function openMatches() {
+    dismissMatch();
+    router.navigate(ROUTES.tabs.chats);
+  }
 
   return (
     <View style={[styles.fill, { backgroundColor: theme.background }]}>
@@ -50,7 +81,28 @@ export function MatchScreen() {
           ]}
         >
           <View style={styles.header}>
-            <ThemedText type="title">Pacinho</ThemedText>
+            <View style={styles.headerCopy}>
+              <ThemedText type="title">
+                {eventId ? "Quem vai" : "Pacinho"}
+              </ThemedText>
+              {eventId && eventName ? (
+                <ThemedText type="bodySmall" themeColor="textSecondary" numberOfLines={1}>
+                  {eventName}
+                </ThemedText>
+              ) : null}
+            </View>
+            {eventId ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Ver todo mundo"
+                onPress={clearEventFilter}
+                hitSlop={8}
+              >
+                <ThemedText type="bodyMedium" style={{ color: theme.primary }}>
+                  Todos
+                </ThemedText>
+              </Pressable>
+            ) : (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Atualizar"
@@ -69,10 +121,13 @@ export function MatchScreen() {
                 color={theme.text}
               />
             </Pressable>
+            )}
           </View>
 
           <View style={styles.deckArea}>
-            {isLoading ? (
+            {needsObjective ? (
+              <ObjectiveStep hasEvent={Boolean(eventId)} />
+            ) : isLoading ? (
               <View style={styles.centered}>
                 <ActivityIndicator color={theme.primary} />
               </View>
@@ -86,11 +141,15 @@ export function MatchScreen() {
                   },
                 ]}
               >
-                <ThemedText type="titleSmall">Acabou por agora</ThemedText>
-                <ThemedText type="bodySmall" themeColor="textSecondary">
-                  Não tem mais gente nova pra ver. Volta depois ou entra num
-                  evento pra achar outra turma.
+                <ThemedText type="titleSmall">
+                  {eventId ? "Ninguém novo nesse evento" : "Acabou por agora"}
                 </ThemedText>
+                <ThemedText type="bodySmall" themeColor="textSecondary">
+                  {eventId
+                    ? "Quem confirmar presença entra nessa fila."
+                    : "Entra num evento pra ver outra turma."}
+                </ThemedText>
+                <Button label="Ver eventos" onPress={openEvents} />
               </View>
             ) : (
               <SwipeDeck
@@ -102,7 +161,7 @@ export function MatchScreen() {
             )}
           </View>
 
-          {people.length > 0 && !isLoading ? (
+          {people.length > 0 && !isLoading && !needsObjective ? (
             <View style={styles.actions}>
               <Pressable
                 accessibilityRole="button"
@@ -156,7 +215,7 @@ export function MatchScreen() {
       <MatchCelebration
         visible={Boolean(matchedUser)}
         matchedUser={matchedUser}
-        onContinue={dismissMatch}
+        onSeeMatch={openMatches}
       />
     </View>
   );
@@ -176,6 +235,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: Spacing[3],
+  },
+  headerCopy: {
+    flex: 1,
+    gap: 2,
   },
   headerButton: {
     width: Sizing.touchMin,

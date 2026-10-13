@@ -1,35 +1,84 @@
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/modules/auth";
+import { listEventsService } from "@/modules/events/services";
+import { listMatchesService } from "@/modules/match/services";
+
+type NextStep = {
+  title: string;
+  body: string;
+  label: string;
+  onPress: () => void;
+};
 
 export function useProfileScreen() {
   const { user, signOut, status } = useAuth();
+  const [matchesCount, setMatchesCount] = useState<number | null>(null);
+  const [eventsCount, setEventsCount] = useState<number | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+
+      async function loadCounts() {
+        try {
+          const [matches, events] = await Promise.all([
+            listMatchesService(),
+            listEventsService(),
+          ]);
+
+          if (cancelled) {
+            return;
+          }
+
+          setMatchesCount(matches.length);
+          setEventsCount(events.filter((event) => event.attending).length);
+        } catch {
+          if (!cancelled) {
+            setMatchesCount(null);
+            setEventsCount(null);
+          }
+        }
+      }
+
+      void loadCounts();
+
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
 
   const stats = [
-    { label: "Matches", value: "0" },
-    { label: "Eventos", value: "0" },
-    { label: "Chats", value: "0" },
-  ];
+    matchesCount && matchesCount > 0
+      ? { label: "Matches", value: String(matchesCount) }
+      : null,
+    eventsCount && eventsCount > 0
+      ? { label: "Eventos", value: String(eventsCount) }
+      : null,
+  ].filter((item): item is { label: string; value: string } => item !== null);
 
-  function handleEditAvatar() {
-    Alert.alert(
-      "Foto em breve",
-      "Por enquanto o Pacinho usa suas iniciais. Em breve você sobe uma foto.",
-    );
-  }
+  const nextStep: NextStep | null = !user?.objective
+    ? {
+        title: "O que você procura?",
+        body: "Encontros, amizade ou treino. É isso que direciona quem você vê.",
+        label: "Escolher",
+        onPress: () => router.push(ROUTES.profileEdit),
+      }
+    : eventsCount === 0
+      ? {
+          title: "Confirme um evento",
+          body: "A fila de gente sai da prova ou do treinão que você confirmar.",
+          label: "Ver eventos",
+          onPress: () => router.navigate(ROUTES.tabs.events),
+        }
+      : null;
 
   function handleEditProfile() {
     router.push(ROUTES.profileEdit);
-  }
-
-  function handleMyEvents() {
-    Alert.alert("Em breve", "Seus eventos vão aparecer aqui.");
-  }
-
-  function handleNotifications() {
-    Alert.alert("Em breve", "Notificações em construção.");
   }
 
   function handleSignOut() {
@@ -49,10 +98,8 @@ export function useProfileScreen() {
     user,
     status,
     stats,
-    handleEditAvatar,
+    nextStep,
     handleEditProfile,
-    handleMyEvents,
-    handleNotifications,
     handleSignOut,
   };
 }

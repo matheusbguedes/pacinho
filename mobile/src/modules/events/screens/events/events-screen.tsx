@@ -9,6 +9,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
+import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
@@ -91,6 +92,16 @@ export function EventsScreen() {
                   ? "Tenta outro nome ou outro dia."
                   : "Quando rolar um paco, aparece nessa lista."}
               </ThemedText>
+              {search || selectedDay ? (
+                <Button
+                  label="Limpar filtro"
+                  variant="secondary"
+                  onPress={() => {
+                    setSearch("");
+                    setSelectedDay(null);
+                  }}
+                />
+              ) : null}
             </View>
           ) : (
             <View style={styles.list}>

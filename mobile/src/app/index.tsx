@@ -2,18 +2,25 @@ import { BottomSheet, RNHostView } from "@expo/ui";
 import { Image } from "expo-image";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
 import { Spacing } from "@/constants/theme";
 import { useScheme, useTheme } from "@/hooks/use-theme";
-import { SignInForm } from "@/modules/auth";
+import { SignInForm, type AuthMode } from "@/modules/auth";
 
 export default function WelcomeScreen() {
   const theme = useTheme();
   const scheme = useScheme();
+  const [mode, setMode] = useState<AuthMode>("sign-up");
   const [isPresented, setIsPresented] = useState(false);
+
+  function open(next: AuthMode) {
+    setMode(next);
+    setIsPresented(true);
+  }
 
   return (
     <View style={[styles.fill, { backgroundColor: theme.background }]}>
@@ -26,9 +33,29 @@ export default function WelcomeScreen() {
             contentFit="contain"
             accessibilityLabel="Pacinho"
           />
+          <ThemedText type="heading" style={styles.center}>
+            Quem vai correr com você
+          </ThemedText>
+          <ThemedText type="body" themeColor="textSecondary" style={styles.center}>
+            Provas e treinões em São Paulo. Você confirma presença e vê quem
+            também vai.
+          </ThemedText>
         </View>
         <View style={styles.footer}>
-          <Button label="Entrar" onPress={() => setIsPresented(true)} />
+          <Button label="Criar conta" onPress={() => open("sign-up")} />
+          <ThemedText type="caption" themeColor="textSecondary" style={styles.center}>
+            Leva um minuto. Sem cartão.
+          </ThemedText>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => open("sign-in")}
+            hitSlop={8}
+            style={styles.secondaryHit}
+          >
+            <ThemedText type="bodyMedium" style={styles.center}>
+              Já tenho conta
+            </ThemedText>
+          </Pressable>
         </View>
       </SafeAreaView>
       <BottomSheet
@@ -42,7 +69,7 @@ export default function WelcomeScreen() {
         shouldDismissOnBackPress
       >
         <RNHostView>
-          <SignInForm />
+          <SignInForm key={mode} mode={mode} onModeChange={setMode} />
         </RNHostView>
       </BottomSheet>
     </View>
@@ -56,17 +83,27 @@ const styles = StyleSheet.create({
   stage: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-end",
     paddingHorizontal: Spacing[6],
-    paddingBottom: Spacing[16],
-    gap: Spacing[4],
+    paddingBottom: Spacing[8],
+    gap: Spacing[3],
   },
   logo: {
-    width: 220,
+    width: 120,
     aspectRatio: 1024 / 889,
+    marginBottom: Spacing[3],
+  },
+  center: {
+    textAlign: "center",
   },
   footer: {
     paddingHorizontal: Spacing[5],
     paddingBottom: Spacing[4],
+    gap: Spacing[3],
+  },
+  secondaryHit: {
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

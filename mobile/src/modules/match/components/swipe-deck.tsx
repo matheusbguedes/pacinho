@@ -251,7 +251,7 @@ function TopCardLayer({
             style={[styles.stamp, styles.likeStamp, likeStampStyle]}
           >
             <ThemedText type="title" style={styles.likeText}>
-              LIKE
+              CURTI
             </ThemedText>
           </Animated.View>
 
@@ -260,7 +260,7 @@ function TopCardLayer({
             style={[styles.stamp, styles.passStamp, passStampStyle]}
           >
             <ThemedText type="title" style={styles.passText}>
-              PASS
+              PASSO
             </ThemedText>
           </Animated.View>
         </Animated.View>

@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { UserDTO } from "@/types/user";
+import type { Objective, UserDTO } from "@/types/user";
 
 export type UpdateMePayload = {
   name?: string;
@@ -8,6 +8,7 @@ export type UpdateMePayload = {
   city?: string | null;
   region?: string | null;
   bio?: string | null;
+  objective?: Objective | null;
   pace?: string | null;
   distance_km?: number | null;
 };

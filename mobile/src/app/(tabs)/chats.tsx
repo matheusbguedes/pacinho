@@ -1,5 +1,5 @@
-import { Screen } from '@/components/screen';
+import { MatchesScreen } from "@/modules/match";
 
 export default function ChatsScreen() {
-  return <Screen title="Conversas" subtitle="O papo começa depois do match." />;
+  return <MatchesScreen />;
 }

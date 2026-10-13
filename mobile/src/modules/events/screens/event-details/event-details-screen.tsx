@@ -15,6 +15,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Icon, type AppIconName } from "@/components/ui/icon";
+import { ROUTES } from "@/constants/routes";
 import {
   BorderWidth,
   Radius,
@@ -78,6 +79,14 @@ export function EventDetailsScreen() {
       cancelled = true;
     };
   }, [id, reloadToken]);
+
+  function openPeople() {
+    if (!event) {
+      return;
+    }
+
+    router.navigate(ROUTES.eventPeople(event.id, event.name));
+  }
 
   async function handleToggleAttend() {
     if (!event) {
@@ -229,18 +238,31 @@ export function EventDetailsScreen() {
           />
 
           <View style={styles.actions}>
-            <Button
-              label={
-                isSubmitting
-                  ? "Atualizando..."
-                  : event.attending
-                    ? "Cancelar presença"
-                    : "Eu vou"
-              }
-              variant={event.attending ? "secondary" : "primary"}
-              disabled={isSubmitting}
-              onPress={handleToggleAttend}
-            />
+            {event.attending ? (
+              <>
+                <Button label="Ver quem vai" onPress={openPeople} />
+                <ThemedText type="caption" themeColor="textSecondary">
+                  Você confirmou. A fila mostra só quem também vai.
+                </ThemedText>
+                <Button
+                  label={isSubmitting ? "Atualizando..." : "Cancelar presença"}
+                  variant="tertiary"
+                  disabled={isSubmitting}
+                  onPress={handleToggleAttend}
+                />
+              </>
+            ) : (
+              <>
+                <Button
+                  label={isSubmitting ? "Atualizando..." : "Eu vou"}
+                  disabled={isSubmitting}
+                  onPress={handleToggleAttend}
+                />
+                <ThemedText type="caption" themeColor="textSecondary">
+                  Aí você vê quem também confirmou.
+                </ThemedText>
+              </>
+            )}
             {event.ticket_url ? (
               <Button
                 label="Abrir ingresso"

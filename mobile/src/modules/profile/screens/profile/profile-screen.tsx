@@ -3,6 +3,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { ThemedText } from "@/components/themed-text";
 import { Avatar } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Icon, type AppIconName } from "@/components/ui/icon";
 import {
   BorderWidth,
@@ -12,6 +13,7 @@ import {
 } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { useProfileScreen } from "@/modules/profile/screens/profile/use-profile-screen";
+import { buildProfileSubtitle } from "@/modules/profile/utils/format-profile";
 
 const TAB_BAR_CLEARANCE = 88;
 
@@ -30,10 +32,8 @@ export function ProfileScreen() {
     user,
     status,
     stats,
-    handleEditAvatar,
+    nextStep,
     handleEditProfile,
-    handleMyEvents,
-    handleNotifications,
     handleSignOut,
   } = useProfileScreen();
 
@@ -43,27 +43,12 @@ export function ProfileScreen() {
     );
   }
 
-  const generalItems: MenuItem[] = [
+  const menuItems: MenuItem[] = [
     {
       key: "edit",
       label: "Editar perfil",
       icon: { ios: "person", android: "person" },
       onPress: handleEditProfile,
-    },
-    {
-      key: "events",
-      label: "Meus eventos",
-      icon: { ios: "mappin.and.ellipse", android: "location_on" },
-      onPress: handleMyEvents,
-    },
-  ];
-
-  const preferenceItems: MenuItem[] = [
-    {
-      key: "notifications",
-      label: "Notificações",
-      icon: { ios: "bell", android: "notifications" },
-      onPress: handleNotifications,
     },
     {
       key: "signout",
@@ -73,6 +58,14 @@ export function ProfileScreen() {
       destructive: true,
     },
   ];
+
+  const subtitle = user.objective
+    ? buildProfileSubtitle({
+        objective: user.objective,
+        pace: user.pace,
+        createdAt: user.created_at,
+      })
+    : "Corredor no Pacinho";
 
   return (
     <View style={[styles.fill, { backgroundColor: theme.background }]}>
@@ -87,21 +80,7 @@ export function ProfileScreen() {
           <ThemedText type="title">Perfil</ThemedText>
 
           <View style={styles.identityRow}>
-            <View>
-              <Avatar name={user.name} size="lg" />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Editar foto"
-                onPress={handleEditAvatar}
-                style={[styles.editBadge, { backgroundColor: theme.text }]}
-              >
-                <Icon
-                  icon={{ ios: "pencil", android: "edit" }}
-                  size={Sizing.iconInline}
-                  color={theme.background}
-                />
-              </Pressable>
-            </View>
+            <Avatar name={user.name} size="lg" />
 
             <View style={styles.identityCopy}>
               <ThemedText type="titleSmall" numberOfLines={1}>
@@ -110,62 +89,66 @@ export function ProfileScreen() {
               <ThemedText
                 type="bodySmall"
                 themeColor="textSecondary"
-                numberOfLines={1}
+                numberOfLines={2}
               >
-                {user.email}
+                {subtitle}
               </ThemedText>
             </View>
           </View>
 
-          <View style={styles.statsRow}>
-            {stats.map((stat) => (
-              <View
-                key={stat.label}
-                style={[
-                  styles.statCard,
-                  {
-                    backgroundColor: theme.surface,
-                    borderColor: theme.border,
-                  },
-                ]}
-              >
-                <ThemedText type="titleSmall">{stat.value}</ThemedText>
-                <ThemedText type="caption" themeColor="textSecondary">
-                  {stat.label}
-                </ThemedText>
-              </View>
-            ))}
-          </View>
+          {stats.length > 0 ? (
+            <View style={styles.statsRow}>
+              {stats.map((stat) => (
+                <View
+                  key={stat.label}
+                  style={[
+                    styles.statCard,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
+                  <ThemedText type="titleSmall">{stat.value}</ThemedText>
+                  <ThemedText type="caption" themeColor="textSecondary">
+                    {stat.label}
+                  </ThemedText>
+                </View>
+              ))}
+            </View>
+          ) : null}
 
-          <MenuSection title="Geral" items={generalItems} />
-          <MenuSection title="Preferências" items={preferenceItems} />
+          {nextStep ? (
+            <View
+              style={[
+                styles.nextStep,
+                {
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <ThemedText type="titleSmall">{nextStep.title}</ThemedText>
+              <ThemedText type="bodySmall" themeColor="textSecondary">
+                {nextStep.body}
+              </ThemedText>
+              <Button label={nextStep.label} onPress={nextStep.onPress} />
+            </View>
+          ) : null}
+
+          <MenuSection items={menuItems} />
         </ScrollView>
       </SafeAreaView>
     </View>
   );
 }
 
-function MenuSection({
-  title,
-  items,
-}: {
-  title: string;
-  items: MenuItem[];
-}) {
+function MenuSection({ items }: { items: MenuItem[] }) {
   return (
-    <View style={styles.section}>
-      <ThemedText
-        type="micro"
-        themeColor="textTertiary"
-        style={styles.sectionLabel}
-      >
-        {title}
-      </ThemedText>
-      <View style={styles.sectionList}>
-        {items.map((item) => (
-          <MenuRow key={item.key} item={item} />
-        ))}
-      </View>
+    <View style={styles.sectionList}>
+      {items.map((item) => (
+        <MenuRow key={item.key} item={item} />
+      ))}
     </View>
   );
 }
@@ -215,15 +198,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing[4],
   },
-  editBadge: {
-    position: "absolute",
-    right: -2,
-    bottom: -2,
-    width: 28,
-    height: 28,
-    borderRadius: Radius.full,
-    alignItems: "center",
-    justifyContent: "center",
+  nextStep: {
+    gap: Spacing[2],
+    padding: Spacing[4],
+    borderRadius: Radius.card,
+    borderWidth: BorderWidth.default,
   },
   identityCopy: {
     flex: 1,
@@ -242,13 +221,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing[2],
     borderRadius: Radius.card,
     borderWidth: BorderWidth.default,
-  },
-  section: {
-    gap: Spacing[2],
-  },
-  sectionLabel: {
-    letterSpacing: 0.4,
-    paddingHorizontal: Spacing[1],
   },
   sectionList: {
     gap: Spacing[2],

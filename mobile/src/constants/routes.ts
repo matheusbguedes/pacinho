@@ -8,4 +8,9 @@ export const ROUTES = {
   },
   profileEdit: "/profile/edit",
   eventDetails: (id: string) => `/events/${id}` as const,
+  eventPeople: (eventId: string, eventName: string) =>
+    ({
+      pathname: "/(tabs)/home",
+      params: { eventId, eventName },
+    }) as const,
 } as const;

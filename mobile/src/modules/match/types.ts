@@ -26,3 +26,8 @@ export type MatchActionResponse = {
   is_match: boolean;
   matched_user: MatchPerson | null;
 };
+
+export type MutualMatch = {
+  matched_at: string;
+  user: MatchPerson;
+};

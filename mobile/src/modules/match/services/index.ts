@@ -3,7 +3,13 @@ import type {
   MatchActionResponse,
   MatchActionType,
   MatchPerson,
+  MutualMatch,
 } from "@/modules/match/types";
+
+export async function listMatchesService() {
+  const { data } = await api.get<MutualMatch[]>("/matches");
+  return data;
+}
 
 export async function listPeopleService(eventId?: string) {
   const { data } = await api.get<MatchPerson[]>("/matches/people", {

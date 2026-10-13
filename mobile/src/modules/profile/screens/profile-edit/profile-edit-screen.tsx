@@ -19,10 +19,12 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
-import { Radius, Sizing, Spacing } from "@/constants/theme";
+import { Sizing, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/modules/auth";
+import { ObjectivePicker } from "@/modules/profile/components/objective-picker";
 import { updateMeService } from "@/modules/profile/services";
+import { Objective } from "@/types/user";
 
 export function ProfileEditScreen() {
   const theme = useTheme();
@@ -35,6 +37,9 @@ export function ProfileEditScreen() {
   const [region, setRegion] = useState(user?.region ?? "");
   const [pace, setPace] = useState(user?.pace ?? "");
   const [bio, setBio] = useState(user?.bio ?? "");
+  const [objective, setObjective] = useState<Objective | null>(
+    user?.objective ?? null,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!user) {
@@ -46,8 +51,15 @@ export function ProfileEditScreen() {
   async function handleSave() {
     const trimmedName = name.trim();
 
+    const trimmedPhone = phone.trim();
+
     if (trimmedName.length < 2) {
       Alert.alert("Nome curto", "Usa pelo menos 2 caracteres.");
+      return;
+    }
+
+    if (trimmedPhone && trimmedPhone.length !== 11) {
+      Alert.alert("Celular incompleto", "Usa 11 dígitos com DDD.");
       return;
     }
 
@@ -55,11 +67,12 @@ export function ProfileEditScreen() {
       setIsSubmitting(true);
       const updated = await updateMeService({
         name: trimmedName,
-        phone: phone.trim() || undefined,
+        phone: trimmedPhone || undefined,
         city: city.trim() || null,
         region: region.trim() || null,
         pace: pace.trim() || null,
         bio: bio.trim() || null,
+        objective,
       });
       await updateUser(updated);
       router.back();
@@ -71,13 +84,6 @@ export function ProfileEditScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }
-
-  function handleEditAvatar() {
-    Alert.alert(
-      "Foto em breve",
-      "Por enquanto o Pacinho usa suas iniciais. Em breve você sobe uma foto.",
-    );
   }
 
   return (
@@ -113,21 +119,13 @@ export function ProfileEditScreen() {
 
             <View style={styles.avatarBlock}>
               <Avatar name={trimmedOr(name, user.name)} size="xl" />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Editar foto"
-                onPress={handleEditAvatar}
-                style={[styles.editBadge, { backgroundColor: theme.text }]}
-              >
-                <Icon
-                  icon={{ ios: "pencil", android: "edit" }}
-                  size={Sizing.iconInline}
-                  color={theme.background}
-                />
-              </Pressable>
             </View>
 
             <View style={styles.form}>
+              <View style={styles.objectiveBlock}>
+                <ThemedText type="bodyMedium">O que você procura</ThemedText>
+                <ObjectivePicker value={objective} onChange={setObjective} />
+              </View>
               <Input
                 label="Nome"
                 value={name}
@@ -137,19 +135,18 @@ export function ProfileEditScreen() {
                 textContentType="name"
               />
               <Input
-                label="E-mail"
-                value={user.email}
-                editable={false}
-                autoCapitalize="none"
+                label="Bio"
+                value={bio}
+                onChangeText={setBio}
+                placeholder="Como você corre, o que procura..."
+                multiline
               />
               <Input
-                label="Telefone"
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-                autoComplete="tel"
-                textContentType="telephoneNumber"
-                placeholder="11999999999"
+                label="Pace"
+                value={pace}
+                onChangeText={setPace}
+                placeholder="5:30"
+                autoCapitalize="none"
               />
               <Input
                 label="Cidade"
@@ -166,18 +163,23 @@ export function ProfileEditScreen() {
                 placeholder="Pinheiros"
               />
               <Input
-                label="Pace"
-                value={pace}
-                onChangeText={setPace}
-                placeholder="5:30"
+                label="E-mail"
+                value={user.email}
+                editable={false}
                 autoCapitalize="none"
               />
               <Input
-                label="Bio"
-                value={bio}
-                onChangeText={setBio}
-                placeholder="Como você corre, o que procura..."
-                multiline
+                label="Telefone"
+                value={phone}
+                onChangeText={(value) =>
+                  setPhone(value.replace(/\D/g, "").slice(0, 11))
+                }
+                keyboardType="number-pad"
+                inputMode="numeric"
+                autoComplete="tel"
+                textContentType="telephoneNumber"
+                placeholder="11999999999"
+                maxLength={11}
               />
             </View>
 
@@ -217,15 +219,8 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginTop: Spacing[2],
   },
-  editBadge: {
-    position: "absolute",
-    right: 4,
-    bottom: 4,
-    width: 32,
-    height: 32,
-    borderRadius: Radius.full,
-    alignItems: "center",
-    justifyContent: "center",
+  objectiveBlock: {
+    gap: Spacing[2],
   },
   form: {
     gap: Spacing[4],

@@ -99,12 +99,18 @@ export function EventCard({ event, onPress }: EventCardProps) {
         </View>
 
         <View style={styles.footer}>
-          <ThemedText type="caption" themeColor="textSecondary">
-            {event._count.attendances}{" "}
-            {event._count.attendances === 1 ? "pessoa" : "pessoas"}
-            {event.attending ? " · você vai" : ""}
+          <ThemedText type="bodySmall">
+            {event._count.attendances === 0
+              ? "Ninguém confirmou ainda"
+              : `${event._count.attendances} ${
+                  event._count.attendances === 1 ? "pessoa vai" : "pessoas vão"
+                }`}
           </ThemedText>
-          {distance ? (
+          {event.attending ? (
+            <ThemedText type="label" style={{ color: theme.primary }}>
+              Você vai
+            </ThemedText>
+          ) : distance ? (
             <ThemedText type="label" style={{ color: accent }}>
               {distance}
             </ThemedText>
