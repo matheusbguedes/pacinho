@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -11,10 +11,10 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { NativeIconButton } from "@/components/ui/native-icon-button";
 import { ROUTES } from "@/constants/routes";
 import {
   BorderWidth,
-  Elevation,
   Radius,
   Sizing,
   Spacing,
@@ -47,6 +47,7 @@ export function MatchScreen() {
   const eventId = firstParam(params.eventId);
   const eventName = firstParam(params.eventName);
   const deckRef = useRef<SwipeDeckHandle>(null);
+  const [deckSize, setDeckSize] = useState({ width: 0, height: 0 });
   const needsObjective = Boolean(user && !user.objective);
   const {
     people,
@@ -66,9 +67,9 @@ export function MatchScreen() {
     router.navigate(ROUTES.tabs.events);
   }
 
-  function openMatches() {
+  function openChat(peerId: string) {
     dismissMatch();
-    router.navigate(ROUTES.tabs.chats);
+    router.push(ROUTES.chat(peerId));
   }
 
   return (
@@ -83,7 +84,7 @@ export function MatchScreen() {
           <View style={styles.header}>
             <View style={styles.headerCopy}>
               <ThemedText type="title">
-                {eventId ? "Quem vai" : "Pacinho"}
+                {eventId ? "Quem vai" : "Gente"}
               </ThemedText>
               {eventId && eventName ? (
                 <ThemedText type="bodySmall" themeColor="textSecondary" numberOfLines={1}>
@@ -103,28 +104,26 @@ export function MatchScreen() {
                 </ThemedText>
               </Pressable>
             ) : (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Atualizar"
-              onPress={refresh}
-              style={[
-                styles.headerButton,
-                {
-                  backgroundColor: theme.elevated,
-                  borderColor: theme.border,
-                },
-              ]}
-            >
-              <Icon
+              <NativeIconButton
+                label="Atualizar"
+                symbol="arrow.clockwise"
                 icon={{ ios: "arrow.clockwise", android: "refresh" }}
-                size={Sizing.iconStandard}
-                color={theme.text}
+                onPress={refresh}
               />
-            </Pressable>
             )}
           </View>
 
-          <View style={styles.deckArea}>
+          <View
+            style={styles.deckArea}
+            onLayout={(event) => {
+              const { width, height } = event.nativeEvent.layout;
+              setDeckSize((current) =>
+                current.width === width && current.height === height
+                  ? current
+                  : { width, height },
+              );
+            }}
+          >
             {needsObjective ? (
               <ObjectiveStep hasEvent={Boolean(eventId)} />
             ) : isLoading ? (
@@ -155,67 +154,77 @@ export function MatchScreen() {
               <SwipeDeck
                 ref={deckRef}
                 people={people}
+                width={deckSize.width}
+                height={deckSize.height}
                 onSwipe={handleSwipe}
                 disabled={isActing}
               />
             )}
+
+            {people.length > 0 && !isLoading && !needsObjective ? (
+              <View style={styles.actions} pointerEvents="box-none">
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Passar"
+                  disabled={isActing}
+                  onPress={() => deckRef.current?.swipeLeft()}
+                  style={[
+                    styles.actionButton,
+                    styles.passButton,
+                    {
+                      backgroundColor: theme.elevated,
+                      borderColor: theme.border,
+                      opacity: isActing ? 0.6 : 1,
+                      boxShadow: "0 8px 20px rgba(23, 23, 25, 0.16)",
+                    },
+                  ]}
+                >
+                  <Icon
+                    icon={{ ios: "xmark", android: "close" }}
+                    size={Sizing.iconFeature}
+                    color={theme.primary}
+                  />
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Curtir"
+                  disabled={isActing}
+                  onPress={() => deckRef.current?.swipeRight()}
+                  style={[
+                    styles.actionButton,
+                    styles.likeButton,
+                    {
+                      backgroundColor: theme.primary,
+                      opacity: isActing ? 0.6 : 1,
+                      boxShadow: "0 8px 20px rgba(205, 24, 53, 0.28)",
+                    },
+                  ]}
+                >
+                  <Icon
+                    icon={{ ios: "heart.fill", android: "favorite" }}
+                    size={Sizing.iconFeature}
+                    color={theme.onPrimary}
+                  />
+                </Pressable>
+              </View>
+            ) : null}
           </View>
-
-          {people.length > 0 && !isLoading && !needsObjective ? (
-            <View style={styles.actions}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Passar"
-                disabled={isActing}
-                onPress={() => deckRef.current?.swipeLeft()}
-                style={[
-                  styles.actionButton,
-                  styles.passButton,
-                  Elevation[2],
-                  {
-                    backgroundColor: theme.elevated,
-                    borderColor: theme.border,
-                    opacity: isActing ? 0.6 : 1,
-                  },
-                ]}
-              >
-                <Icon
-                  icon={{ ios: "xmark", android: "close" }}
-                  size={Sizing.iconFeature}
-                  color={theme.primary}
-                />
-              </Pressable>
-
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Curtir"
-                disabled={isActing}
-                onPress={() => deckRef.current?.swipeRight()}
-                style={[
-                  styles.actionButton,
-                  styles.likeButton,
-                  Elevation[2],
-                  {
-                    backgroundColor: theme.primary,
-                    opacity: isActing ? 0.6 : 1,
-                  },
-                ]}
-              >
-                <Icon
-                  icon={{ ios: "heart.fill", android: "favorite" }}
-                  size={Sizing.iconFeature}
-                  color={theme.onPrimary}
-                />
-              </Pressable>
-            </View>
-          ) : null}
         </View>
       </SafeAreaView>
 
       <MatchCelebration
         visible={Boolean(matchedUser)}
         matchedUser={matchedUser}
-        onSeeMatch={openMatches}
+        onMessage={() => {
+          if (matchedUser) {
+            openChat(matchedUser.id);
+          }
+        }}
+        onSeeMatch={() => {
+          dismissMatch();
+          router.navigate(ROUTES.tabs.chats);
+        }}
       />
     </View>
   );
@@ -241,18 +250,9 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
-  headerButton: {
-    width: Sizing.touchMin,
-    height: Sizing.touchMin,
-    borderRadius: Radius.full,
-    borderWidth: BorderWidth.default,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   deckArea: {
     flex: 1,
-    minHeight: 420,
-    alignItems: "center",
+    minHeight: 0,
   },
   centered: {
     flex: 1,
@@ -268,11 +268,14 @@ const styles = StyleSheet.create({
     borderWidth: BorderWidth.default,
   },
   actions: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: Spacing[3],
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: Spacing[6],
-    paddingBottom: Spacing[2],
   },
   actionButton: {
     alignItems: "center",

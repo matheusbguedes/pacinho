@@ -1,4 +1,20 @@
-import { Objective } from "@/types/user";
+import { Gender, Objective } from "@/types/user";
+
+const GENDER_LABEL: Record<Gender, string> = {
+  [Gender.WOMAN]: "Mulher",
+  [Gender.MAN]: "Homem",
+  [Gender.NON_BINARY]: "Não-binário",
+  [Gender.OTHER]: "Outro",
+  [Gender.PREFER_NOT_TO_SAY]: "Prefiro não dizer",
+};
+
+export function formatGender(gender: Gender | null) {
+  if (!gender) {
+    return null;
+  }
+
+  return GENDER_LABEL[gender];
+}
 
 const OBJECTIVE_LABEL: Record<Objective, string> = {
   [Objective.DATING]: "Encontros",

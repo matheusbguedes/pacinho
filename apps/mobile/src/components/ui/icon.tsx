@@ -1,5 +1,4 @@
-import { SymbolView, type AndroidSymbol } from "expo-symbols";
-import type { SFSymbol } from "sf-symbols-typescript";
+import { SymbolView, type AndroidSymbol, type SFSymbol } from "expo-symbols";
 
 import { Sizing } from "@/constants/theme";
 

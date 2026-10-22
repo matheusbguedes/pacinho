@@ -4,7 +4,7 @@ import {
   useState,
   type Ref,
 } from "react";
-import { StyleSheet, View, useWindowDimensions } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Extrapolation,
@@ -17,7 +17,6 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { ThemedText } from "@/components/themed-text";
-import { Spacing } from "@/constants/theme";
 import { MatchCard } from "@/modules/match/components/match-card";
 import type { MatchPerson } from "@/modules/match/types";
 
@@ -28,11 +27,14 @@ export type SwipeDeckHandle = {
 
 type SwipeDeckProps = {
   people: MatchPerson[];
+  width: number;
+  height: number;
   onSwipe: (person: MatchPerson, action: "LIKE" | "PASS") => void;
   disabled?: boolean;
 };
 
 const SWIPE_THRESHOLD = 120;
+const CARD_ACTION_INSET = 108;
 
 type TopCardProps = {
   person: MatchPerson;
@@ -225,6 +227,7 @@ function TopCardLayer({
             photoIndex={0}
             width={cardWidth}
             height={cardHeight}
+            contentInsetBottom={CARD_ACTION_INSET}
           />
         </Animated.View>
       ) : null}
@@ -242,6 +245,7 @@ function TopCardLayer({
             photoIndex={photoIndex}
             width={cardWidth}
             height={cardHeight}
+            contentInsetBottom={CARD_ACTION_INSET}
             failedUrl={failedUrl}
             onImageError={() => setFailedUrl(true)}
           />
@@ -270,14 +274,11 @@ function TopCardLayer({
 }
 
 export const SwipeDeck = forwardRef<SwipeDeckHandle, SwipeDeckProps>(
-  function SwipeDeck({ people, onSwipe, disabled = false }, ref) {
-    const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  function SwipeDeck({ people, width, height, onSwipe, disabled = false }, ref) {
     const topPerson = people[0];
     const nextPerson = people[1];
-    const cardWidth = windowWidth - Spacing[5] * 2;
-    const cardHeight = Math.min(windowHeight * 0.56, 560);
 
-    if (!topPerson) {
+    if (!topPerson || width < 1 || height < 1) {
       return null;
     }
 
@@ -287,9 +288,9 @@ export const SwipeDeck = forwardRef<SwipeDeckHandle, SwipeDeckProps>(
         person={topPerson}
         nextPerson={nextPerson}
         disabled={disabled}
-        cardWidth={cardWidth}
-        cardHeight={cardHeight}
-        windowWidth={windowWidth}
+        cardWidth={width}
+        cardHeight={height}
+        windowWidth={width}
         deckRef={ref}
         onSwipe={(action) => onSwipe(topPerson, action)}
       />

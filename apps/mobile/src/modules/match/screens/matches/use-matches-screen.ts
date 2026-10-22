@@ -2,16 +2,17 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 
-import { listMatchesService } from "@/modules/match/services";
-import type { MutualMatch } from "@/modules/match/types";
+import type { Conversation } from "@pacinho/shared";
+
+import { listConversationsService } from "@/modules/chat/services";
 
 export function useMatchesScreen() {
-  const [matches, setMatches] = useState<MutualMatch[]>([]);
+  const [matches, setMatches] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadMatches = useCallback(async () => {
-    const data = await listMatchesService();
+    const data = await listConversationsService();
     setMatches(data);
   }, []);
 
@@ -21,7 +22,7 @@ export function useMatchesScreen() {
 
       async function run() {
         try {
-          const data = await listMatchesService();
+          const data = await listConversationsService();
           if (!cancelled) {
             setMatches(data);
           }

@@ -1,6 +1,8 @@
-import { prisma } from "@/lib/prisma";
-import { Objective, UserRole } from "@prisma-client";
-import bcrypt from "bcrypt";
+import { DEVELOPMENT_RUNNER_EMAIL } from "../src/auth/development-runner";
+import { createPrismaClient } from "../src/prisma/client";
+import { Gender, Objective, UserRole } from "@prisma-client";
+
+const prisma = createPrismaClient();
 
 function atDayOffset(daysFromNow: number, hour: number, minute = 0) {
   const date = new Date();
@@ -73,15 +75,13 @@ const DEMO_PEOPLE = [
 ] as const;
 
 async function seed() {
-  const password = await bcrypt.hash("pacinho123", 10);
-
   await prisma.user.upsert({
     where: { email: "admin@pacinho.app" },
-    update: {},
+    update: { password: null },
     create: {
       name: "Admin Pacinho",
       email: "admin@pacinho.app",
-      password,
+      password: null,
       role: UserRole.ADMIN,
       city: "São Paulo",
       region: "Pinheiros",
@@ -92,14 +92,26 @@ async function seed() {
     },
   });
 
-  await prisma.user.upsert({
-    where: { email: "runner@pacinho.app" },
-    update: {},
+  const runner = await prisma.user.upsert({
+    where: { email: DEVELOPMENT_RUNNER_EMAIL },
+    update: {
+      name: "Corredor Demo",
+      password: null,
+      gender: Gender.MAN,
+      city: "São Paulo",
+      region: "Ibirapuera",
+      age: 26,
+      bio: "Treino de terça e quinta. Topo um café depois.",
+      objective: Objective.DATING,
+      pace: "5:00/km",
+      distance_km: 5,
+    },
     create: {
       name: "Corredor Demo",
-      email: "runner@pacinho.app",
-      password,
+      email: DEVELOPMENT_RUNNER_EMAIL,
+      password: null,
       role: UserRole.USER,
+      gender: Gender.MAN,
       city: "São Paulo",
       region: "Ibirapuera",
       age: 26,
@@ -110,11 +122,25 @@ async function seed() {
     },
   });
 
+  const runnerPhoto = await prisma.userMedia.findFirst({
+    where: { user_id: runner.id },
+  });
+  if (!runnerPhoto) {
+    await prisma.userMedia.create({
+      data: {
+        user_id: runner.id,
+        url: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=900&q=80",
+        sort_order: 0,
+      },
+    });
+  }
+
   for (const person of DEMO_PEOPLE) {
     const user = await prisma.user.upsert({
       where: { email: person.email },
       update: {
         name: person.name,
+        password: null,
         city: person.city,
         region: person.region,
         age: person.age,
@@ -126,7 +152,7 @@ async function seed() {
       create: {
         name: person.name,
         email: person.email,
-        password,
+        password: null,
         role: UserRole.USER,
         city: person.city,
         region: person.region,

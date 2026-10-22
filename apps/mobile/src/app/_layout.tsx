@@ -18,6 +18,7 @@ export default function RootLayout() {
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="index" />
+              <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
               <Stack.Screen
                 name="profile/edit"
                 options={{
@@ -27,6 +28,13 @@ export default function RootLayout() {
               />
               <Stack.Screen
                 name="events/[id]"
+                options={{
+                  presentation: "card",
+                  animation: "slide_from_right",
+                }}
+              />
+              <Stack.Screen
+                name="chats/[peerId]"
                 options={{
                   presentation: "card",
                   animation: "slide_from_right",

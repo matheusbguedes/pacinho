@@ -64,13 +64,15 @@ export function EventsScreen() {
             <ThemedText type="titleSmall">Agenda</ThemedText>
           </View>
 
-          <View style={styles.daySelectorBleed}>
-            <DaySelector
-              days={days}
-              selectedKey={selectedDay}
-              onSelect={setSelectedDay}
-            />
-          </View>
+          {days.length > 0 ? (
+            <View style={styles.daySelectorBleed}>
+              <DaySelector
+                days={days}
+                selectedKey={selectedDay}
+                onSelect={setSelectedDay}
+              />
+            </View>
+          ) : null}
 
           {isLoading ? (
             <View style={styles.loading}>

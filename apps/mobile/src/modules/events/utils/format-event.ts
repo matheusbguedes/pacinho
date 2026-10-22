@@ -1,28 +1,37 @@
-export function toDateKey(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
+export function eventDayKey(startsAt: string) {
+  const date = new Date(startsAt);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 }
 
-export function buildDayOptions(days = 14) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+export function buildEventDayOptions(keys: string[]) {
+  const todayKey = eventDayKey(new Date().toISOString());
+  const unique = [...new Set(keys)].sort();
 
-  return Array.from({ length: days }, (_, index) => {
-    const date = new Date(today);
-    date.setDate(today.getDate() + index);
-
+  return unique.map((key) => {
+    const date = new Date(`${key}T12:00:00-03:00`);
     const weekday = date
-      .toLocaleDateString("pt-BR", { weekday: "short" })
+      .toLocaleDateString("pt-BR", {
+        weekday: "short",
+        timeZone: "America/Sao_Paulo",
+      })
       .replace(".", "")
       .slice(0, 3);
 
     return {
-      key: toDateKey(date),
-      dayNumber: `${date.getDate()}`.padStart(2, "0"),
+      key,
+      dayNumber: key.slice(8, 10),
       weekday: weekday.charAt(0).toUpperCase() + weekday.slice(1),
-      isToday: index === 0,
+      isToday: key === todayKey,
     };
   });
 }

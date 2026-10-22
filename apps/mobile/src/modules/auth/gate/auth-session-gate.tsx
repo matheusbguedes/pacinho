@@ -11,7 +11,7 @@ type AuthSessionGateProps = {
 };
 
 export function AuthSessionGate({ children }: AuthSessionGateProps) {
-  const { status } = useAuth();
+  const { status, user } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const theme = useTheme();
@@ -22,21 +22,30 @@ export function AuthSessionGate({ children }: AuthSessionGateProps) {
     }
 
     const firstSegment = segments[0];
-    const onWelcome = !firstSegment || firstSegment === "index";
+    const onWelcome = !firstSegment;
+    const onOnboarding = firstSegment === "onboarding";
+    const profileComplete = user?.profile_complete === true;
     const onProtectedRoute =
       firstSegment === "(tabs)" ||
       firstSegment === "profile" ||
-      firstSegment === "events";
+      firstSegment === "events" ||
+      firstSegment === "chats" ||
+      onOnboarding;
 
     if (status === "unauthenticated" && onProtectedRoute) {
       router.replace(ROUTES.welcome);
       return;
     }
 
-    if (status === "authenticated" && onWelcome) {
+    if (status === "authenticated" && !profileComplete && !onOnboarding) {
+      router.replace(ROUTES.onboarding);
+      return;
+    }
+
+    if (status === "authenticated" && profileComplete && (onWelcome || onOnboarding)) {
       router.replace(ROUTES.tabs.home);
     }
-  }, [status, segments, router]);
+  }, [status, user, segments, router]);
 
   return (
     <>
@@ -52,7 +61,11 @@ export function AuthSessionGate({ children }: AuthSessionGateProps) {
 
 const styles = StyleSheet.create({
   loading: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 10,

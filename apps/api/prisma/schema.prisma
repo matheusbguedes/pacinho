@@ -31,14 +31,21 @@ enum MatchAction {
   PASS
 }
 
+enum AuthProvider {
+  APPLE
+  GOOGLE
+}
+
 model User {
   id          String     @id @default(uuid())
   name        String
   email       String     @unique
   phone       String?
-  password    String
+  password    String?
   role        UserRole   @default(USER)
   age         Int?
+  birth_date  DateTime? @db.Date
+  height_cm   Int?
   gender      Gender?
   city        String?
   region      String?
@@ -50,9 +57,13 @@ model User {
   updated_at  DateTime   @updatedAt
 
   media             UserMedia[]
+  identities        AuthIdentity[]
   event_attendances EventAttendance[]
-  actions_sent      MatchActionRecord[] @relation("ActionsSent")
-  actions_received  MatchActionRecord[] @relation("ActionsReceived")
+  actions_sent       MatchActionRecord[] @relation("ActionsSent")
+  actions_received   MatchActionRecord[] @relation("ActionsReceived")
+  conversations_low  Conversation[]      @relation("ConversationLow")
+  conversations_high Conversation[]      @relation("ConversationHigh")
+  messages_sent      Message[]           @relation("MessagesSent")
 
   @@map("users")
 }
@@ -68,6 +79,20 @@ model UserMedia {
 
   @@index([user_id, sort_order])
   @@map("user_media")
+}
+
+model AuthIdentity {
+  id         String       @id @default(uuid())
+  provider   AuthProvider
+  subject    String
+  created_at DateTime     @default(now())
+
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([provider, subject])
+  @@index([user_id])
+  @@map("auth_identities")
 }
 
 model Event {
@@ -115,4 +140,35 @@ model MatchActionRecord {
 
   @@unique([from_id, to_id])
   @@map("match_actions")
+}
+
+model Conversation {
+  id         String   @id @default(uuid())
+  created_at DateTime @default(now())
+
+  user_low_id String
+  user_low    User   @relation("ConversationLow", fields: [user_low_id], references: [id], onDelete: Cascade)
+
+  user_high_id String
+  user_high    User   @relation("ConversationHigh", fields: [user_high_id], references: [id], onDelete: Cascade)
+
+  messages Message[]
+
+  @@unique([user_low_id, user_high_id])
+  @@map("conversations")
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  body       String
+  created_at DateTime @default(now())
+
+  conversation_id String
+  conversation    Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+
+  sender_id String
+  sender    User   @relation("MessagesSent", fields: [sender_id], references: [id], onDelete: Cascade)
+
+  @@index([conversation_id, created_at])
+  @@map("messages")
 }

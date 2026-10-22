@@ -1,26 +1,122 @@
-import { BottomSheet, RNHostView } from "@expo/ui";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { Image } from "expo-image";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, StyleSheet, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
-import { Spacing } from "@/constants/theme";
+import { Radius, Spacing } from "@/constants/theme";
 import { useScheme, useTheme } from "@/hooks/use-theme";
-import { SignInForm, type AuthMode } from "@/modules/auth";
+import { useAuth } from "@/modules/auth";
+
+function failureMessage(error: unknown) {
+  return typeof error === "string" ? error : "Tenta de novo em instantes.";
+}
+
+function isCanceled(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "ERR_REQUEST_CANCELED"
+  );
+}
+
+function appleDisplayName(
+  fullName: AppleAuthentication.AppleAuthenticationFullName | null,
+) {
+  return [fullName?.givenName, fullName?.familyName].filter(Boolean).join(" ").trim();
+}
 
 export default function WelcomeScreen() {
   const theme = useTheme();
   const scheme = useScheme();
-  const [mode, setMode] = useState<AuthMode>("sign-up");
-  const [isPresented, setIsPresented] = useState(false);
+  const { width } = useWindowDimensions();
+  const { signInWithProvider, signInWithDevelopment } = useAuth();
+  const [appleReady, setAppleReady] = useState<boolean | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function open(next: AuthMode) {
-    setMode(next);
-    setIsPresented(true);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkApple() {
+      try {
+        const available = await AppleAuthentication.isAvailableAsync();
+        if (!cancelled) {
+          setAppleReady(available);
+        }
+      } catch {
+        if (!cancelled) {
+          setAppleReady(false);
+        }
+      }
+    }
+
+    void checkApple();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function continueWithApple() {
+    if (isSubmitting) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (!credential.identityToken) {
+        Alert.alert("Apple", "A Apple não devolveu a identidade.");
+        return;
+      }
+
+      await signInWithProvider(
+        "APPLE",
+        credential.identityToken,
+        appleDisplayName(credential.fullName),
+      );
+    } catch (error) {
+      if (isCanceled(error)) {
+        return;
+      }
+
+      Alert.alert("Não foi possível entrar", failureMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
   }
+
+  function continueWithGoogle() {
+    Alert.alert(
+      "Google",
+      __DEV__
+        ? "A entrada com o Google fica no build de lançamento. Neste Expo Go, usa a entrada de teste."
+        : "Não foi possível confirmar a identidade do Google.",
+    );
+  }
+
+  async function enterDevelopment() {
+    try {
+      setIsSubmitting(true);
+      await signInWithDevelopment();
+    } catch (error) {
+      Alert.alert("Não foi possível entrar", failureMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  const appleWidth = width - Spacing[5] * 2;
 
   return (
     <View style={[styles.fill, { backgroundColor: theme.background }]}>
@@ -42,36 +138,49 @@ export default function WelcomeScreen() {
           </ThemedText>
         </View>
         <View style={styles.footer}>
-          <Button label="Criar conta" onPress={() => open("sign-up")} />
-          <ThemedText type="caption" themeColor="textSecondary" style={styles.center}>
-            Leva um minuto. Sem cartão.
-          </ThemedText>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => open("sign-in")}
-            hitSlop={8}
-            style={styles.secondaryHit}
-          >
-            <ThemedText type="bodyMedium" style={styles.center}>
-              Já tenho conta
-            </ThemedText>
-          </Pressable>
+          {appleReady === null ? (
+            <View style={styles.appleSlot} />
+          ) : appleReady ? (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={
+                scheme === "dark"
+                  ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                  : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+              }
+              cornerRadius={Radius.button}
+              style={{ width: appleWidth, height: 48 }}
+              onPress={() => {
+                void continueWithApple();
+              }}
+            />
+          ) : (
+            <Button
+              label="Continuar com a Apple"
+              disabled={isSubmitting}
+              onPress={() => {
+                void continueWithApple();
+              }}
+            />
+          )}
+          <Button
+            label="Continuar com o Google"
+            variant="secondary"
+            disabled={isSubmitting}
+            onPress={continueWithGoogle}
+          />
+          {__DEV__ ? (
+            <Button
+              label={isSubmitting ? "Entrando..." : "Entrar como corredor de teste"}
+              variant="tertiary"
+              disabled={isSubmitting}
+              onPress={() => {
+                void enterDevelopment();
+              }}
+            />
+          ) : null}
         </View>
       </SafeAreaView>
-      <BottomSheet
-        isPresented={isPresented}
-        onDismiss={() => setIsPresented(false)}
-        snapPoints={["half", "full"]}
-        showDragIndicator={false}
-        contentPadding={0}
-        containerColor={theme.background}
-        shouldDismissOnClickOutside={false}
-        shouldDismissOnBackPress
-      >
-        <RNHostView>
-          <SignInForm key={mode} mode={mode} onModeChange={setMode} />
-        </RNHostView>
-      </BottomSheet>
     </View>
   );
 }
@@ -100,10 +209,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing[5],
     paddingBottom: Spacing[4],
     gap: Spacing[3],
+    alignItems: "stretch",
   },
-  secondaryHit: {
-    minHeight: 44,
-    alignItems: "center",
-    justifyContent: "center",
+  appleSlot: {
+    height: 48,
   },
 });

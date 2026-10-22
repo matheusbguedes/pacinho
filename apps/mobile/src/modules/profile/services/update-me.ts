@@ -1,17 +1,9 @@
-import { api } from "@/lib/api";
-import type { Objective, UserDTO } from "@/types/user";
+import type { UpdateProfileBody, UserDTO } from "@pacinho/shared";
 
-export type UpdateMePayload = {
-  name?: string;
-  phone?: string;
-  age?: number | null;
-  city?: string | null;
-  region?: string | null;
-  bio?: string | null;
-  objective?: Objective | null;
-  pace?: string | null;
-  distance_km?: number | null;
-};
+import { api } from "@/lib/api";
+import { toSessionUser } from "@/modules/auth/session-user";
+
+export type UpdateMePayload = UpdateProfileBody;
 
 function omitPassword(user: UserDTO & { password?: string }): UserDTO {
   const { password: _, ...safeUser } = user;
@@ -24,5 +16,5 @@ export async function updateMeService(payload: UpdateMePayload) {
     payload,
   );
 
-  return omitPassword(data);
+  return toSessionUser(omitPassword(data));
 }

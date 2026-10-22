@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Pressable,
   ScrollView,
   StyleSheet,
   View,
@@ -15,6 +14,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Icon, type AppIconName } from "@/components/ui/icon";
+import { NativeIconButton } from "@/components/ui/native-icon-button";
 import { ROUTES } from "@/constants/routes";
 import {
   BorderWidth,
@@ -134,18 +134,13 @@ export function EventDetailsScreen() {
       <View style={[styles.hero, { backgroundColor: theme.text }]}>
         <SafeAreaView edges={["top"]}>
           <View style={styles.heroTop}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Voltar"
+            <NativeIconButton
+              label="Voltar"
+              symbol="chevron.left"
+              icon={{ ios: "chevron.left", android: "arrow_back" }}
               onPress={() => router.back()}
-              style={[styles.heroButton, { backgroundColor: theme.elevated }]}
-            >
-              <Icon
-                icon={{ ios: "chevron.left", android: "arrow_back" }}
-                size={Sizing.iconLarge}
-                color={theme.text}
-              />
-            </Pressable>
+              color={theme.background}
+            />
           </View>
           <View style={styles.heroCopy}>
             <ThemedText type="heading" style={{ color: theme.background }}>
@@ -332,13 +327,6 @@ const styles = StyleSheet.create({
   heroTop: {
     paddingTop: Spacing[2],
     marginBottom: Spacing[6],
-  },
-  heroButton: {
-    width: Sizing.touchMin,
-    height: Sizing.touchMin,
-    borderRadius: Radius.full,
-    alignItems: "center",
-    justifyContent: "center",
   },
   heroCopy: {
     gap: Spacing[2],

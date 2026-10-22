@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import type { AuthProvider as SocialProvider } from "@pacinho/shared";
+
 import { api } from "@/lib/api";
 import {
   AuthContext,
@@ -7,10 +9,11 @@ import {
 } from "@/modules/auth/context/auth-context";
 import {
   fetchMeService,
-  signInService,
-  signUpService,
+  signInDevService,
+  signInSocialService,
 } from "@/modules/auth/services";
-import type { AuthStatus, SignUpPayload } from "@/modules/auth/types";
+import type { SessionUser } from "@/modules/auth/session-user";
+import type { AuthStatus } from "@/modules/auth/types";
 import {
   storageAuthTokenGet,
   storageAuthTokenRemove,
@@ -21,43 +24,56 @@ import {
   storageUserRemove,
   storageUserSave,
 } from "@/storage/storage-user";
-import type { UserDTO } from "@/types/user";
 
 type AuthProviderProps = {
   children: ReactNode;
 };
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<UserDTO | null>(null);
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [suggestedName, setSuggestedName] = useState<string | null>(null);
   const [status, setStatus] = useState<AuthStatus>("loading");
 
-  async function userAndTokenUpdate(userData: UserDTO, token: string) {
+  async function userAndTokenUpdate(userData: SessionUser, token: string) {
     api.defaults.headers.common.Authorization = `Bearer ${token}`;
     setUser(userData);
     setStatus("authenticated");
   }
 
-  async function storageUserAndTokenSave(userData: UserDTO, token: string) {
+  async function storageUserAndTokenSave(userData: SessionUser, token: string) {
     await Promise.all([
       storageUserSave(userData),
       storageAuthTokenSave(token),
     ]);
   }
 
-  async function signIn(email: string, password: string) {
-    const { user: userData, token } = await signInService({ email, password });
+  async function signInWithProvider(
+    provider: SocialProvider,
+    identityToken: string,
+    name?: string,
+  ) {
+    const trimmedName = name?.trim() ?? "";
+    const providedName = trimmedName.length >= 2 ? trimmedName : undefined;
+    const { user: userData, token } = await signInSocialService({
+      provider,
+      identity_token: identityToken,
+      ...(providedName ? { name: providedName } : {}),
+    });
+    setSuggestedName(providedName ?? null);
     await storageUserAndTokenSave(userData, token);
     await userAndTokenUpdate(userData, token);
   }
 
-  async function signUp(data: SignUpPayload) {
-    const { user: userData, token } = await signUpService(data);
+  async function signInWithDevelopment() {
+    const { user: userData, token } = await signInDevService();
+    setSuggestedName(null);
     await storageUserAndTokenSave(userData, token);
     await userAndTokenUpdate(userData, token);
   }
 
   async function signOut() {
     setUser(null);
+    setSuggestedName(null);
     setStatus("unauthenticated");
     await Promise.all([storageUserRemove(), storageAuthTokenRemove()]);
     delete api.defaults.headers.common.Authorization;
@@ -69,7 +85,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signOutRef.current = signOut;
   });
 
-  async function updateUser(userData: UserDTO) {
+  async function updateUser(userData: SessionUser) {
     await storageUserSave(userData);
     setUser(userData);
   }
@@ -82,19 +98,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
           storageAuthTokenGet(),
         ]);
 
-        if (!userLogged || !token) {
+        if (!token) {
           setStatus("unauthenticated");
           return;
         }
 
-        await userAndTokenUpdate(userLogged, token);
+        api.defaults.headers.common.Authorization = `Bearer ${token}`;
 
         try {
-          const freshUser = await fetchMeService();
+          const freshUser = await fetchMeService(8000);
           await storageUserSave(freshUser);
           setUser(freshUser);
-        } catch {
-          // Mantém o usuário do storage se /users/me falhar offline
+          setStatus("authenticated");
+        } catch (error) {
+          if (error === "Não autorizado" || !userLogged) {
+            setUser(null);
+            setStatus("unauthenticated");
+            await storageAuthTokenRemove();
+            delete api.defaults.headers.common.Authorization;
+            return;
+          }
+
+          setUser(userLogged);
+          setStatus("authenticated");
         }
       } catch {
         setUser(null);
@@ -115,9 +141,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const value: AuthContextData = {
     user,
+    suggestedName,
     status,
-    signIn,
-    signUp,
+    signInWithProvider,
+    signInWithDevelopment,
     signOut,
     updateUser,
   };

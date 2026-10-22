@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Modal, StyleSheet, View } from "react-native";
+import { Modal, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -19,6 +19,7 @@ import type { MatchPerson } from "@/modules/match/types";
 type MatchCelebrationProps = {
   visible: boolean;
   matchedUser: MatchPerson | null;
+  onMessage: () => void;
   onSeeMatch: () => void;
 };
 
@@ -51,6 +52,7 @@ function PhotoBubble({
 export function MatchCelebration({
   visible,
   matchedUser,
+  onMessage,
   onSeeMatch,
 }: MatchCelebrationProps) {
   const { user } = useAuth();
@@ -101,10 +103,17 @@ export function MatchCelebration({
           </ThemedText>
 
           <View style={styles.actions}>
-            <Button label="Ver o match" onPress={onSeeMatch} />
-            <ThemedText type="caption" style={styles.secondary}>
-              Vocês dois ficam na sua lista.
-            </ThemedText>
+            <Button label="Mandar mensagem" onPress={onMessage} />
+            <Pressable
+              accessibilityRole="button"
+              onPress={onSeeMatch}
+              hitSlop={8}
+              style={styles.secondaryHit}
+            >
+              <ThemedText type="bodyMedium" style={styles.secondary}>
+                Ver a lista
+              </ThemedText>
+            </Pressable>
           </View>
         </Animated.View>
       </View>
@@ -164,5 +173,10 @@ const styles = StyleSheet.create({
   secondary: {
     color: "rgba(247,245,240,0.72)",
     textAlign: "center",
+  },
+  secondaryHit: {
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

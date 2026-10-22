@@ -1,5 +1,13 @@
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
+## Monorepo
+
+- Install dependencies from the repository root with `pnpm install`.
+- Add a native dependency from this directory with `npx expo install <package>`.
+- HTTP payloads come from `@pacinho/shared`.
+- Routes stay in `src/app/`.
+
+
 ## Expo has changed — do not trust your training data
 
 Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
@@ -39,3 +47,7 @@ Docs: https://docs.expo.dev/eas/index.md
 - If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
 - Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
 - Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+
+## Entrada de desenvolvimento
+
+Atravessar as telas no Expo Go usa a entrada de desenvolvimento da tela inicial. Ela só existe com `__DEV__` e abre a sessão de um perfil completo, sem development build. Os IDs da Apple e do Google não são necessários para isso.

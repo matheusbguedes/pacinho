@@ -1,4 +1,4 @@
-import { StyleSheet, View, type ViewStyle } from "react-native";
+import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius } from "@/constants/theme";
@@ -9,7 +9,7 @@ type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
 type AvatarProps = {
   name: string;
   size?: AvatarSize;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 };
 
 const SIZE_MAP: Record<

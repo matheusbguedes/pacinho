@@ -26,6 +26,15 @@
     },
     "plugins": [
       "expo-router",
+      "expo-apple-authentication",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Pacinho usa uma foto sua no card de quem vai correr com você.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
       [
         "expo-splash-screen",
         {

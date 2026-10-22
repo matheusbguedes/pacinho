@@ -4,7 +4,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   View,
@@ -17,14 +16,21 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
+import { NativeIconButton } from "@/components/ui/native-icon-button";
 import { Input } from "@/components/ui/input";
-import { Sizing, Spacing } from "@/constants/theme";
+import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/modules/auth";
 import { ObjectivePicker } from "@/modules/profile/components/objective-picker";
 import { updateMeService } from "@/modules/profile/services";
 import { Objective } from "@/types/user";
+import {
+  birthDateError,
+  birthDateToIso,
+  formatBirthDateInput,
+  maskBirthDate,
+  parseHeightCm,
+} from "@/modules/profile/utils/birth-date";
 
 export function ProfileEditScreen() {
   const theme = useTheme();
@@ -32,6 +38,8 @@ export function ProfileEditScreen() {
   const { user, updateUser } = useAuth();
 
   const [name, setName] = useState(user?.name ?? "");
+  const [birthDate, setBirthDate] = useState(formatBirthDateInput(user?.birth_date));
+  const [height, setHeight] = useState(user?.height_cm ? String(user.height_cm) : "");
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [city, setCity] = useState(user?.city ?? "");
   const [region, setRegion] = useState(user?.region ?? "");
@@ -53,8 +61,23 @@ export function ProfileEditScreen() {
 
     const trimmedPhone = phone.trim();
 
+    const birthProblem = birthDateError(birthDate);
+    const heightCm = parseHeightCm(height);
+    const isoBirthDate = birthDateToIso(birthDate);
+
     if (trimmedName.length < 2) {
       Alert.alert("Nome curto", "Usa pelo menos 2 caracteres.");
+      return;
+    }
+
+    if (birthProblem || isoBirthDate === "invalid" || heightCm === "invalid") {
+      Alert.alert(
+        "Cadastro",
+        birthProblem ??
+          (heightCm === "invalid"
+            ? "A altura fica entre 120 e 220 cm."
+            : "Data de nascimento inválida"),
+      );
       return;
     }
 
@@ -67,6 +90,8 @@ export function ProfileEditScreen() {
       setIsSubmitting(true);
       const updated = await updateMeService({
         name: trimmedName,
+        birth_date: isoBirthDate,
+        height_cm: heightCm,
         phone: trimmedPhone || undefined,
         city: city.trim() || null,
         region: region.trim() || null,
@@ -101,19 +126,12 @@ export function ProfileEditScreen() {
               { paddingBottom: Spacing[6] + insets.bottom },
             ]}
           >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Voltar"
+            <NativeIconButton
+              label="Voltar"
+              symbol="chevron.left"
+              icon={{ ios: "chevron.left", android: "arrow_back" }}
               onPress={() => router.back()}
-              hitSlop={8}
-              style={styles.backButton}
-            >
-              <Icon
-                icon={{ ios: "chevron.left", android: "arrow_back" }}
-                size={Sizing.iconLarge}
-                color={theme.text}
-              />
-            </Pressable>
+            />
 
             <ThemedText type="title">Editar perfil</ThemedText>
 
@@ -134,6 +152,29 @@ export function ProfileEditScreen() {
                 autoComplete="name"
                 textContentType="name"
               />
+              <Input
+                label="Nascimento"
+                value={birthDate}
+                onChangeText={(value) => setBirthDate(maskBirthDate(value))}
+                keyboardType="number-pad"
+                inputMode="numeric"
+                placeholder="22/10/1997"
+                maxLength={10}
+              />
+              <Input
+                label="Altura (cm)"
+                value={height}
+                onChangeText={(value) =>
+                  setHeight(value.replace(/\D/g, "").slice(0, 3))
+                }
+                keyboardType="number-pad"
+                inputMode="numeric"
+                placeholder="175"
+                maxLength={3}
+              />
+              <ThemedText type="caption" themeColor="textSecondary">
+                A altura não entra no card. Apagar o campo remove o valor.
+              </ThemedText>
               <Input
                 label="Bio"
                 value={bio}
@@ -207,13 +248,6 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: Spacing[5],
     gap: Spacing[5],
-  },
-  backButton: {
-    width: Sizing.touchMin,
-    height: Sizing.touchMin,
-    marginLeft: -Spacing[2],
-    alignItems: "flex-start",
-    justifyContent: "center",
   },
   avatarBlock: {
     alignSelf: "center",

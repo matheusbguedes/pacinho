@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-10-21
+goal: Transformar o repositório em um monorepo pnpm/Turborepo, com API NestJS,
+  app Expo preservado, contrato compartilhado e AGENTS.md por app.

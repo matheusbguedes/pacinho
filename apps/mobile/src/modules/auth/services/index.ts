@@ -1,3 +1,3 @@
-export { signInService } from "./sign-in";
-export { signUpService } from "./sign-up";
+export { signInSocialService } from "./sign-in-social";
+export { signInDevService } from "./sign-in-dev";
 export { fetchMeService } from "./fetch-me";

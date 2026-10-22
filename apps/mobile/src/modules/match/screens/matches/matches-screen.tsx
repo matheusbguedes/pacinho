@@ -1,12 +1,16 @@
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+
+import type { Conversation } from "@pacinho/shared";
 
 import { ThemedText } from "@/components/themed-text";
 import { Avatar } from "@/components/ui/avatar";
@@ -15,7 +19,6 @@ import { ROUTES } from "@/constants/routes";
 import { BorderWidth, Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { useMatchesScreen } from "@/modules/match/screens/matches/use-matches-screen";
-import type { MutualMatch } from "@/modules/match/types";
 import { formatObjective } from "@/modules/profile/utils/format-profile";
 import { Objective } from "@/types/user";
 
@@ -42,7 +45,7 @@ export function MatchesScreen() {
           <View style={styles.heading}>
             <ThemedText type="title">Matches</ThemedText>
             <ThemedText type="bodySmall" themeColor="textSecondary">
-              Quem curtiu de volta.
+              Match vira conversa.
             </ThemedText>
           </View>
 
@@ -73,7 +76,7 @@ export function MatchesScreen() {
           ) : (
             <View style={styles.list}>
               {matches.map((match) => (
-                <MatchRow key={match.user.id} match={match} />
+                <MatchRow key={match.id} match={match} />
               ))}
             </View>
           )}
@@ -83,27 +86,35 @@ export function MatchesScreen() {
   );
 }
 
-function MatchRow({ match }: { match: MutualMatch }) {
+function MatchRow({ match }: { match: Conversation }) {
   const theme = useTheme();
-  const person = match.user;
+  const person = match.peer;
+  const photo = person.media[0]?.url;
   const objective =
     person.objective && person.objective in Objective
       ? formatObjective(person.objective as Objective)
       : null;
   const detail = [objective, person.pace, person.city].filter(Boolean).join(" · ");
-  const when = formatMatchedAt(match.matched_at);
+  const preview = match.last_message?.body ?? "Começar a conversa";
 
   return (
-    <View
-      style={[
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Conversar com ${person.name}`}
+      onPress={() => router.push(ROUTES.chat(person.id))}
+      style={({ pressed }) => [
         styles.row,
         {
-          backgroundColor: theme.surface,
+          backgroundColor: pressed ? theme.elevated : theme.surface,
           borderColor: theme.border,
         },
       ]}
     >
-      <Avatar name={person.name} size="md" />
+      {photo ? (
+        <Image source={{ uri: photo }} style={styles.photo} contentFit="cover" />
+      ) : (
+        <Avatar name={person.name} size="md" />
+      )}
       <View style={styles.rowCopy}>
         <ThemedText type="bodyMedium" numberOfLines={1}>
           {person.name}
@@ -113,24 +124,16 @@ function MatchRow({ match }: { match: MutualMatch }) {
             {detail}
           </ThemedText>
         ) : null}
-        {when ? (
-          <ThemedText type="caption" themeColor="textTertiary">
-            Match em {when}
-          </ThemedText>
-        ) : null}
+        <ThemedText
+          type="caption"
+          themeColor={match.last_message ? "text" : "textTertiary"}
+          numberOfLines={1}
+        >
+          {preview}
+        </ThemedText>
       </View>
-    </View>
+    </Pressable>
   );
-}
-
-function formatMatchedAt(value: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  return date.toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
 }
 
 const styles = StyleSheet.create({
@@ -169,5 +172,10 @@ const styles = StyleSheet.create({
   rowCopy: {
     flex: 1,
     gap: 2,
+  },
+  photo: {
+    width: 48,
+    height: 48,
+    borderRadius: Radius.full,
   },
 });

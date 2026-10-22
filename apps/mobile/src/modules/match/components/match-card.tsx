@@ -4,11 +4,10 @@ import { StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { Avatar } from "@/components/ui/avatar";
-import { Icon } from "@/components/ui/icon";
-import { Radius, Sizing, Spacing } from "@/constants/theme";
+import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import type { MatchPerson } from "@/modules/match/types";
-import { formatObjective } from "@/modules/profile/utils/format-profile";
+import { formatGender, formatLocation, formatObjective, formatPace } from "@/modules/profile/utils/format-profile";
 import { Objective } from "@/types/user";
 
 type MatchCardProps = {
@@ -16,6 +15,7 @@ type MatchCardProps = {
   photoIndex: number;
   width: number;
   height: number;
+  contentInsetBottom?: number;
   failedUrl?: boolean;
   onImageError?: () => void;
 };
@@ -25,6 +25,7 @@ export function MatchCard({
   photoIndex,
   width,
   height,
+  contentInsetBottom = Spacing[5],
   failedUrl = false,
   onImageError,
 }: MatchCardProps) {
@@ -34,11 +35,17 @@ export function MatchCard({
   const currentPhoto = photos[safeIndex];
   const showPhoto = Boolean(currentPhoto?.url && !failedUrl);
 
-  const location = [person.city, person.region].filter(Boolean).join(", ");
+  const location = formatLocation(person.city, person.region);
   const objectiveLabel =
     person.objective && person.objective in Objective
       ? formatObjective(person.objective as Objective)
       : null;
+  const genderLabel = formatGender(person.gender);
+  const paceLabel = person.pace ? formatPace(person.pace) : null;
+  const distanceLabel = person.distance_km ? `${person.distance_km} km` : null;
+  const facts = [genderLabel, location, paceLabel, distanceLabel]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <View
@@ -97,7 +104,10 @@ export function MatchCard({
         </View>
       ) : null}
 
-      <View style={styles.info} pointerEvents="none">
+      <View
+        style={[styles.info, { bottom: contentInsetBottom }]}
+        pointerEvents="none"
+      >
         {objectiveLabel ? (
           <View style={[styles.pill, { backgroundColor: theme.primary }]}>
             <ThemedText type="caption" style={{ color: theme.onPrimary }}>
@@ -108,39 +118,13 @@ export function MatchCard({
 
         <ThemedText type="heading" style={styles.name}>
           {person.name}
-          {person.age ? (
-            <ThemedText type="title" style={styles.name}>
-              {" "}
-              {person.age}
-            </ThemedText>
-          ) : null}
+          {person.age ? ` ${person.age}` : ""}
         </ThemedText>
 
-        {location ? (
-          <View style={styles.metaRow}>
-            <Icon
-              icon={{ ios: "location.fill", android: "location_on" }}
-              size={Sizing.iconInline}
-              color="#FFFFFF"
-            />
-            <ThemedText type="bodySmall" style={styles.metaText}>
-              {location}
-            </ThemedText>
-          </View>
-        ) : null}
-
-        {person.pace ? (
-          <View style={styles.metaRow}>
-            <Icon
-              icon={{ ios: "figure.run", android: "directions_run" }}
-              size={Sizing.iconInline}
-              color="#FFFFFF"
-            />
-            <ThemedText type="bodySmall" style={styles.metaText}>
-              {person.pace}
-              {person.distance_km ? ` · ${person.distance_km} km` : ""}
-            </ThemedText>
-          </View>
+        {facts ? (
+          <ThemedText type="bodySmall" style={styles.facts} numberOfLines={2}>
+            {facts}
+          </ThemedText>
         ) : null}
 
         {person.bio ? (
@@ -156,6 +140,7 @@ export function MatchCard({
 const styles = StyleSheet.create({
   card: {
     borderRadius: Radius.lg,
+    borderCurve: "continuous",
     overflow: "hidden",
   },
   fallback: {
@@ -187,7 +172,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: Spacing[4],
     right: Spacing[4],
-    bottom: Spacing[5],
     gap: Spacing[2],
     zIndex: 2,
   },
@@ -200,14 +184,8 @@ const styles = StyleSheet.create({
   name: {
     color: "#FFFFFF",
   },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing[1],
-  },
-  metaText: {
+  facts: {
     color: "#FFFFFF",
-    flex: 1,
   },
   bio: {
     color: "rgba(255,255,255,0.88)",

@@ -1,15 +1,22 @@
 import { createContext } from "react";
 
-import type { AuthStatus, SignUpPayload } from "@/modules/auth/types";
-import type { UserDTO } from "@/types/user";
+import type { AuthProvider as SocialProvider } from "@pacinho/shared";
+
+import type { SessionUser } from "@/modules/auth/session-user";
+import type { AuthStatus } from "@/modules/auth/types";
 
 export type AuthContextData = {
-  user: UserDTO | null;
+  user: SessionUser | null;
+  suggestedName: string | null;
   status: AuthStatus;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (data: SignUpPayload) => Promise<void>;
+  signInWithProvider: (
+    provider: SocialProvider,
+    identityToken: string,
+    name?: string,
+  ) => Promise<void>;
+  signInWithDevelopment: () => Promise<void>;
   signOut: () => Promise<void>;
-  updateUser: (user: UserDTO) => Promise<void>;
+  updateUser: (user: SessionUser) => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextData | null>(null);

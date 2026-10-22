@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 
 import { listEventsService } from "@/modules/events/services";
 import type { EventSummary } from "@/modules/events/types";
-import { buildDayOptions } from "@/modules/events/utils/format-event";
+import { buildEventDayOptions, eventDayKey } from "@/modules/events/utils/format-event";
 
 export function useEventsScreen() {
   const [events, setEvents] = useState<EventSummary[]>([]);
@@ -14,7 +14,23 @@ export function useEventsScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
 
-  const days = useMemo(() => buildDayOptions(14), []);
+  const days = useMemo(
+    () =>
+      buildEventDayOptions(
+        events
+          .map((event) => eventDayKey(event.starts_at))
+          .filter((key): key is string => key !== null),
+      ),
+    [events],
+  );
+  const activeDay = days.some((day) => day.key === selectedDay) ? selectedDay : null;
+  const visibleEvents = useMemo(() => {
+    if (!activeDay) {
+      return events;
+    }
+
+    return events.filter((event) => eventDayKey(event.starts_at) === activeDay);
+  }, [activeDay, events]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -31,7 +47,6 @@ export function useEventsScreen() {
       try {
         const data = await listEventsService({
           q: debouncedSearch || undefined,
-          date: selectedDay || undefined,
         });
 
         if (!cancelled) {
@@ -57,7 +72,7 @@ export function useEventsScreen() {
     return () => {
       cancelled = true;
     };
-  }, [debouncedSearch, selectedDay, reloadToken]);
+  }, [debouncedSearch, reloadToken]);
 
   function refresh() {
     setIsRefreshing(true);
@@ -65,10 +80,10 @@ export function useEventsScreen() {
   }
 
   return {
-    events,
+    events: visibleEvents,
     search,
     setSearch,
-    selectedDay,
+    selectedDay: activeDay,
     setSelectedDay,
     days,
     isLoading,

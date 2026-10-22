@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -12,8 +13,9 @@ import {
   Spacing,
 } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { UpgradeSheet } from "@/modules/account/upgrade-sheet";
 import { useProfileScreen } from "@/modules/profile/screens/profile/use-profile-screen";
-import { buildProfileSubtitle } from "@/modules/profile/utils/format-profile";
+import { buildProfileSubtitle, formatLocation } from "@/modules/profile/utils/format-profile";
 
 const TAB_BAR_CLEARANCE = 88;
 
@@ -28,6 +30,7 @@ type MenuItem = {
 export function ProfileScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const {
     user,
     status,
@@ -44,6 +47,12 @@ export function ProfileScreen() {
   }
 
   const menuItems: MenuItem[] = [
+    {
+      key: "upgrade",
+      label: "Melhorar conta",
+      icon: { ios: "bolt.fill", android: "bolt" },
+      onPress: () => setUpgradeOpen(true),
+    },
     {
       key: "edit",
       label: "Editar perfil",
@@ -66,6 +75,14 @@ export function ProfileScreen() {
         createdAt: user.created_at,
       })
     : "Corredor no Pacinho";
+
+  const place = formatLocation(user.city, user.region);
+  const bodyLine = [
+    user.age != null ? `${user.age} anos` : null,
+    user.height_cm != null ? `${user.height_cm} cm` : null,
+  ]
+    .filter((part) => part !== null)
+    .join(" · ");
 
   return (
     <View style={[styles.fill, { backgroundColor: theme.background }]}>
@@ -93,6 +110,16 @@ export function ProfileScreen() {
               >
                 {subtitle}
               </ThemedText>
+              {place ? (
+                <ThemedText type="caption" themeColor="textTertiary" numberOfLines={1}>
+                  {place}
+                </ThemedText>
+              ) : null}
+              {bodyLine ? (
+                <ThemedText type="caption" themeColor="textTertiary" numberOfLines={1}>
+                  {bodyLine}
+                </ThemedText>
+              ) : null}
             </View>
           </View>
 
@@ -138,6 +165,10 @@ export function ProfileScreen() {
 
           <MenuSection items={menuItems} />
         </ScrollView>
+        <UpgradeSheet
+          isPresented={upgradeOpen}
+          onDismiss={() => setUpgradeOpen(false)}
+        />
       </SafeAreaView>
     </View>
   );
